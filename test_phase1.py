@@ -4,8 +4,9 @@ import json
 import os
 import sys
 
-LOGS_DIR = os.path.join(os.path.dirname(__file__), "logs")
-DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
+_BASE = os.path.dirname(__file__) if '__file__' in dir() else os.getcwd()
+LOGS_DIR = os.path.join(_BASE, "logs")
+DATA_DIR = os.path.join(_BASE, "data")
 
 def test_data_exists():
     assert os.path.exists(os.path.join(DATA_DIR, "companies.json")), "companies.json missing"
@@ -14,7 +15,7 @@ def test_data_exists():
     assert len(companies["targets"]) == 10, f"Expected 10 targets, got {len(companies['targets'])}"
 
 def test_single_agent_runs():
-    sys.path.insert(0, os.path.join(os.path.dirname(__file__), "single_agent"))
+    sys.path.insert(0, os.path.join(_BASE, "single_agent"))
     from baseline import SingleAgentBaseline
     agent = SingleAgentBaseline()
     result = agent.run()
