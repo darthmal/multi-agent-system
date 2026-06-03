@@ -70,11 +70,18 @@ python evaluator\improvement_loop.py
 Note: Evaluator score is subjective (LLM judging LLM prompts). Real validation needs A/B testing of actual agent outputs. Original prompts backed up as `prompt_v1.md` — rename to restore.
 
 ### Phase 6 — Board Dashboard
-HTML dashboard with KPI cards, pipeline table, risk heatmap, evaluator scores, improvement loop status, benchmark speedup.
+Two modes available:
 
+**Static HTML** (self-contained, no server):
 ```bash
 python dashboard\generate_dashboard.py
-start dashboard\index.html      # open in browser
+start dashboard\index.html
+```
+
+**Interactive Server** (Flask, buttons trigger pipeline phases):
+```bash
+python dashboard\server.py
+# Open http://localhost:5000
 ```
 
 ### Phase 7 — Log Analyzer
@@ -113,7 +120,10 @@ Assignment 8/
     improvement_loop.py     # Phase 5: feedback → rewrite → promote → re-score
     scores.json             # Evaluation scores per iteration (gitignored)
   logs/                     # Execution logs (gitignored)
-  dashboard/                # Phase 6 (TODO)
+  dashboard/
+    generate_dashboard.py   # Static HTML generator
+    server.py              # Interactive Flask dashboard server
+    index.html             # Generated static dashboard (gitignored)
 ```
 
 ## Logs

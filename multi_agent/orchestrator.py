@@ -82,6 +82,7 @@ class Orchestrator:
 
         # Phase 4: Report Writer
         report = self.phase_report(ranked)
+        self.results = ranked
 
         total_time = round(time.time() - t0, 3)
         self.log("pipeline_complete", f"Total time: {total_time}s", total_time)
@@ -316,8 +317,29 @@ class Orchestrator:
     def save_report(self, report):
         os.makedirs(LOGS_DIR, exist_ok=True)
         report_path = os.path.join(LOGS_DIR, "report_multi_agent.json")
+
+        # Merge LLM report with computed scores so dashboard can read both
+        output = dict(report)
+        output["ranked_companies"] = []
+        for i, c in enumerate(getattr(self, "results", []), 1):
+            output["ranked_companies"].append({
+                "rank": i,
+                "name": c["name"],
+                "sector": c["sector"],
+                "composite_score": c.get("_composite_score", 0),
+                "financial_score": c.get("_financial_score", 0),
+                "risk_score": c.get("_risk_score", 0),
+                "strategy_score": c.get("_strategy_score", 0),
+                "rating": c.get("_rating", "N/A"),
+                "revenue_2024": c.get("revenue_2024", 0),
+                "growth_rate": c.get("growth_rate_pct", 0),
+                "valuation": c.get("estimated_valuation", 0),
+                "risk_flags": (c.get("_risk", {}) or {}).get("risk_flags", []) if isinstance(c.get("_risk"), dict) else [],
+            })
+        output["passed_screening"] = len(getattr(self, "results", []))
+
         with open(report_path, "w") as f:
-            json.dump(report, f, indent=2)
+            json.dump(output, f, indent=2)
         print(f"[REPORT] Saved to {report_path}")
 
 
