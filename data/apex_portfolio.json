@@ -1,0 +1,51 @@
+{
+  "firm_name": "Apex Capital Partners",
+  "type": "Mid-Market Private Equity",
+  "aum_billion": 2.5,
+  "investment_thesis": "Acquire high-growth fintech platforms with $10M-$150M revenue, strong technology moat, and clear path to EBITDA-positive within 24 months. Target sub-sectors: payments, digital banking, insurtech, regtech, financial data, and capital markets technology.",
+  "deal_parameters": {
+    "min_revenue": 10000000,
+    "max_revenue": 150000000,
+    "min_growth_rate_pct": 15.0,
+    "target_ebitda_positive_months": 24,
+    "max_valuation_multiple": 6.0,
+    "deal_size_range": "$30M-$400M",
+    "holding_period_years": 5,
+    "target_irr_pct": 25.0
+  },
+  "current_portfolio": [
+    {
+      "name": "SwiftPay",
+      "sector": "Payment Processing",
+      "acquired": 2021,
+      "revenue_at_acquisition": 25000000,
+      "current_revenue": 55000000
+    },
+    {
+      "name": "OmniBank Digital",
+      "sector": "Digital Banking",
+      "acquired": 2022,
+      "revenue_at_acquisition": 15000000,
+      "current_revenue": 38000000
+    },
+    {
+      "name": "RiskIntel",
+      "sector": "Financial Data & Analytics",
+      "acquired": 2020,
+      "revenue_at_acquisition": 40000000,
+      "current_revenue": 85000000
+    }
+  ],
+  "sector_preferences": {
+    "high_priority": ["InsurTech", "RegTech", "Identity Verification / KYC", "Capital Markets / Trading Tech"],
+    "medium_priority": ["Payment Processing", "Financial Data & Analytics", "Alternative Lending"],
+    "low_priority": ["Digital Banking", "Blockchain / Cross-Border Payments"],
+    "avoid": ["Crypto-native businesses with unclear regulatory path"]
+  },
+  "risk_tolerance": {
+    "regulatory_risk": "moderate",
+    "technology_risk": "low",
+    "market_risk": "moderate",
+    "execution_risk": "low"
+  }
+}
