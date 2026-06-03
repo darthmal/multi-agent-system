@@ -30,8 +30,6 @@ def get_client():
     if _client is None:
         env = _read_env_file()
         api_key = env.get("DEEPSEEK_API_KEY", "")
-        print("Getting DeepSeek client...")
-        print(f"API Key: {api_key}")
         if not api_key or api_key == "your_deepseek_api_key_here":
             raise RuntimeError(
                 "DEEPSEEK_API_KEY not set in .env file. "
@@ -43,17 +41,21 @@ def get_client():
         )
     return _client
 
-def call_agent(system_prompt, user_message, model="deepseek-chat", temperature=0.3):
-    """Call DeepSeek API and return parsed JSON response."""
+def call_agent(system_prompt, user_message, model="deepseek-chat", temperature=0.3, expect_json=True):
+    """Call DeepSeek API. Set expect_json=False for plain text responses."""
     client = get_client()
-    response = client.chat.completions.create(
+    kwargs = dict(
         model=model,
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_message}
         ],
         temperature=temperature,
-        response_format={"type": "json_object"}
     )
+    if expect_json:
+        kwargs["response_format"] = {"type": "json_object"}
+    response = client.chat.completions.create(**kwargs)
     content = response.choices[0].message.content
-    return json.loads(content)
+    if expect_json:
+        return json.loads(content)
+    return content
