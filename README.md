@@ -96,7 +96,10 @@ Output: `logs/analysis_report.json` + printed summary.
 ### Phase 8 — Final Write-up
 What broke, what you'd change, production-readiness verdict.
 
-_TODO_
+```bash
+# Read the write-up
+cat writeup.md
+```
 
 ## Project Structure
 
