@@ -103,6 +103,7 @@ Assignment 8/
     apex_portfolio.json     # Apex Capital investment criteria + current portfolio
   single_agent/
     baseline.py             # Phase 1: monolithic benchmark
+  test_phase1.py            # Phase 1 validation suite
   multi_agent/
     llm_client.py           # Shared DeepSeek client (reads .env only)
     orchestrator.py         # Phase 2: orchestrator + fan-out
