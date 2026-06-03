@@ -70,9 +70,12 @@ python evaluator\improvement_loop.py
 Note: Evaluator score is subjective (LLM judging LLM prompts). Real validation needs A/B testing of actual agent outputs. Original prompts backed up as `prompt_v1.md` — rename to restore.
 
 ### Phase 6 — Board Dashboard
-HTML dashboard with KPI cards, pipeline table, risk heatmap, evaluator scores.
+HTML dashboard with KPI cards, pipeline table, risk heatmap, evaluator scores, improvement loop status, benchmark speedup.
 
-_TODO_
+```bash
+python dashboard\generate_dashboard.py
+start dashboard\index.html      # open in browser
+```
 
 ### Phase 7 — Log Analyzer
 Parses all JSON logs, produces before/after analysis report.

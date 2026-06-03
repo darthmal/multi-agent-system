@@ -1,0 +1,1270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Apex Capital — M&A Target Evaluation Dashboard</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Segoe UI',system-ui,sans-serif; background:#0f172a; color:#e2e8f0; padding:24px; }
+.header { display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; }
+.header h1 { font-size:22px; color:#38bdf8; }
+.header .badge { background:#1e293b; padding:5px 14px; border-radius:6px; font-size:12px; color:#94a3b8; }
+.grid4 { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px; margin-bottom:28px; }
+.card { background:#1e293b; border-radius:10px; padding:20px; border:1px solid #334155; }
+.card .lbl { font-size:11px; text-transform:uppercase; color:#64748b; letter-spacing:.5px; margin-bottom:6px; }
+.card .val { font-size:28px; font-weight:700; }
+.card .sub { font-size:12px; color:#94a3b8; margin-top:4px; }
+.g { color:#22c55e; } .y { color:#eab308; } .r { color:#ef4444; } .b { color:#38bdf8; }
+.section-title { font-size:14px; font-weight:600; margin:28px 0 14px; color:#94a3b8; text-transform:uppercase; letter-spacing:1px; }
+table { width:100%; border-collapse:collapse; background:#1e293b; border-radius:10px; overflow:hidden; }
+th { text-align:left; padding:10px 14px; font-size:11px; text-transform:uppercase; color:#64748b; border-bottom:1px solid #334155; }
+td { padding:10px 14px; font-size:13px; border-bottom:1px solid #1e293b; }
+tr:hover td { background:#263348; }
+.tag { display:inline-block; padding:2px 9px; border-radius:10px; font-size:10px; font-weight:600; }
+.tag-g { background:#14532d; color:#22c55e; } .tag-b { background:#1e3a5f; color:#38bdf8; }
+.tag-y { background:#422006; color:#eab308; } .tag-r { background:#450a0a; color:#f87171; }
+.bar { width:100%; height:5px; background:#334155; border-radius:3px; margin-top:4px; overflow:hidden; }
+.bar-f { height:100%; border-radius:3px; }
+.grid2 { display:grid; grid-template-columns:1fr 1fr; gap:28px; }
+.heat { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px; }
+.heat-cell { background:#1e293b; border-radius:8px; padding:14px; text-align:center; border:1px solid #334155; }
+.heat-cell .cname { font-size:13px; font-weight:600; }
+.heat-cell .crisk { font-size:11px; color:#94a3b8; margin-top:3px; }
+.hl { border-left:3px solid #22c55e; } .hm { border-left:3px solid #eab308; } .hh { border-left:3px solid #ef4444; }
+.eval-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+.eval-cell { background:#1e293b; border-radius:8px; padding:14px; border:1px solid #334155; }
+.eval-cell .dim { font-size:10px; color:#64748b; text-transform:uppercase; }
+.eval-cell .ds { font-size:22px; font-weight:700; }
+.timeline { font-size:12px; }
+.timeline .row { padding:5px 0; border-bottom:1px solid #1e293b; display:flex; justify-content:space-between; }
+.timeline .step { color:#38bdf8; width:180px; }
+.timeline .detail { flex:1; color:#94a3b8; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.timeline .ts { color:#64748b; width:60px; text-align:right; }
+.footer { text-align:center; color:#475569; font-size:11px; margin-top:36px; padding-top:18px; border-top:1px solid #1e293b; }
+.delta-up { color:#22c55e; } .delta-down { color:#ef4444; }
+.score-loop { margin-top:14px; }
+.score-row { display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid #1e293b; font-size:13px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Apex Capital Partners — M&A Target Evaluation System</h1>
+  <span class="badge">Board of Directors Dashboard</span>
+</div>
+
+<div class="grid4" id="cards"></div>
+
+<div class="section-title">Ranked Target Pipeline</div>
+<table>
+  <thead><tr><th>Rank</th><th>Company</th><th>Sector</th><th>Composite</th><th>Financial</th><th>Risk</th><th>Strategy</th><th>Rating</th><th>Revenue</th><th>Growth</th></tr></thead>
+  <tbody id="pipeline"></tbody>
+</table>
+
+<div class="grid2" style="margin-top:28px;">
+  <div>
+    <div class="section-title">Risk Heatmap</div>
+    <div class="heat" id="heatmap"></div>
+  </div>
+  <div>
+    <div class="section-title">Evaluator Scores</div>
+    <div class="eval-grid" id="eval-scores"></div>
+    <div class="card score-loop" id="eval-detail"></div>
+  </div>
+</div>
+
+<div class="grid2" style="margin-top:28px;">
+  <div>
+    <div class="section-title">Improvement Loop</div>
+    <div id="loop-info" class="card"></div>
+  </div>
+  <div>
+    <div class="section-title">Benchmark</div>
+    <div id="bench-info" class="card"></div>
+  </div>
+</div>
+
+<div class="section-title">Execution Timeline (multi-agent run)</div>
+<div class="timeline card" id="timeline"></div>
+
+<div class="footer">
+  Apex Capital Multi-Agent M&A System &middot; Evaluator Score: <span id="final-score" class="b">—</span> &middot; powered by DeepSeek
+</div>
+
+<script>
+const D = {
+  "generated_at": "2026-06-03T12:54:22.765523",
+  "single_agent": {
+    "text_report": "Rank  Company                   Sector                 Score   Rating             Revenue      Valuation   \n---------------------------------------------------------------------------------------------------------\n1     VerifyFi                  Identity Verification / KYC 87.2    STRONG BUY         $31,000,000  $124,000,000\n2     TradeMate                 Capital Markets / Trading Tech 85.2    STRONG BUY         $68,000,000  $272,000,000\n3     PayFlow Solutions         Payment Processing     83.9    BUY                $42,000,000  $168,000,000\n4     DataFin Analytics         Financial Data & Analytics 83.8    BUY                $140,000,000  $560,000,000\n5     InsureTech AI             InsurTech              83.2    BUY                $75,000,000  $375,000,000\n6     LendSmart                 Alternative Lending    76.9    BUY                $95,000,000  $380,000,000\n7     CryptoGuard Compliance    RegTech / Crypto Compliance 56.5    WEAK HOLD          $12,000,000  $60,000,000\n8     NeoBank Digital           Digital Banking        48.3    WEAK HOLD          $18,000,000  $90,000,000",
+    "top_pick": "VerifyFi",
+    "runner_up": "TradeMate",
+    "total_evaluated": 10,
+    "passed_screening": 8,
+    "ranked_companies": [
+      {
+        "rank": 1,
+        "name": "VerifyFi",
+        "id": "FNT-009",
+        "sector": "Identity Verification / KYC",
+        "composite_score": 87.2,
+        "financial_score": 93.0,
+        "risk_score": 90.0,
+        "strategy_score": 74.0,
+        "rating": "STRONG BUY",
+        "revenue_2024": 31000000,
+        "valuation": 124000000,
+        "growth_rate": 40.9,
+        "risk_flags": [
+          "Moderate regulatory issues (2)",
+          "Politically sensitive data residency requirements"
+        ]
+      },
+      {
+        "rank": 2,
+        "name": "TradeMate",
+        "id": "FNT-010",
+        "sector": "Capital Markets / Trading Tech",
+        "composite_score": 85.2,
+        "financial_score": 80.0,
+        "risk_score": 90.0,
+        "strategy_score": 87.0,
+        "rating": "STRONG BUY",
+        "revenue_2024": 68000000,
+        "valuation": 272000000,
+        "growth_rate": 23.6,
+        "risk_flags": [
+          "Moderate regulatory issues (1)",
+          "Cybersecurity breach potential in trading infrastructure"
+        ]
+      },
+      {
+        "rank": 3,
+        "name": "PayFlow Solutions",
+        "id": "FNT-001",
+        "sector": "Payment Processing",
+        "composite_score": 83.9,
+        "financial_score": 89.0,
+        "risk_score": 83.0,
+        "strategy_score": 77.0,
+        "rating": "BUY",
+        "revenue_2024": 42000000,
+        "valuation": 168000000,
+        "growth_rate": 40.0,
+        "risk_flags": [
+          "Moderate regulatory issues (2)",
+          "Moderate cash reserves",
+          "High competitive pressure from Stripe and Square"
+        ]
+      },
+      {
+        "rank": 4,
+        "name": "DataFin Analytics",
+        "id": "FNT-008",
+        "sector": "Financial Data & Analytics",
+        "composite_score": 83.8,
+        "financial_score": 84.0,
+        "risk_score": 90.0,
+        "strategy_score": 75.0,
+        "rating": "BUY",
+        "revenue_2024": 140000000,
+        "valuation": 560000000,
+        "growth_rate": 18.6,
+        "risk_flags": [
+          "Large deal size increases execution risk",
+          "Mature company; upside limited without geographic expansion"
+        ]
+      },
+      {
+        "rank": 5,
+        "name": "InsureTech AI",
+        "id": "FNT-003",
+        "sector": "InsurTech",
+        "composite_score": 83.2,
+        "financial_score": 86.0,
+        "risk_score": 80.0,
+        "strategy_score": 83.0,
+        "rating": "BUY",
+        "revenue_2024": 75000000,
+        "valuation": 375000000,
+        "growth_rate": 29.3,
+        "risk_flags": [
+          "Moderate regulatory issues (1)",
+          "Large deal size increases execution risk",
+          "Regulatory uncertainty around AI-based underwriting decisions"
+        ]
+      },
+      {
+        "rank": 6,
+        "name": "LendSmart",
+        "id": "FNT-006",
+        "sector": "Alternative Lending",
+        "composite_score": 76.9,
+        "financial_score": 81.0,
+        "risk_score": 80.0,
+        "strategy_score": 66.0,
+        "rating": "BUY",
+        "revenue_2024": 95000000,
+        "valuation": 380000000,
+        "growth_rate": 31.9,
+        "risk_flags": [
+          "Moderate regulatory issues (2)",
+          "Large deal size increases execution risk",
+          "Rising interest rates squeezing net interest margins"
+        ]
+      },
+      {
+        "rank": 7,
+        "name": "CryptoGuard Compliance",
+        "id": "FNT-004",
+        "sector": "RegTech / Crypto Compliance",
+        "composite_score": 56.5,
+        "financial_score": 71.0,
+        "risk_score": 48.0,
+        "strategy_score": 45.0,
+        "rating": "WEAK HOLD",
+        "revenue_2024": 12000000,
+        "valuation": 60000000,
+        "growth_rate": 53.8,
+        "risk_flags": [
+          "Moderate regulatory issues (2)",
+          "Severe tech debt (score: 7)",
+          "High churn (15.0%)",
+          "Moderate cash reserves",
+          "Regulatory regime for crypto still evolving; high uncertainty"
+        ]
+      },
+      {
+        "rank": 8,
+        "name": "NeoBank Digital",
+        "id": "FNT-002",
+        "sector": "Digital Banking",
+        "composite_score": 48.3,
+        "financial_score": 47.0,
+        "risk_score": 50.0,
+        "strategy_score": 48.0,
+        "rating": "WEAK HOLD",
+        "revenue_2024": 18000000,
+        "valuation": 90000000,
+        "growth_rate": 95.6,
+        "risk_flags": [
+          "Moderate regulatory issues (2)",
+          "High tech debt (score: 6)",
+          "High churn (12.0%)",
+          "Low cash reserves",
+          "Cash runway only 3.75 months; needs capital urgently"
+        ]
+      }
+    ]
+  },
+  "multi_agent": {
+    "memo_title": "Apex Capital Partners \u2014 M&A Target Evaluation Memo",
+    "date": "2023-10-05",
+    "executive_summary": "We have evaluated six fintech targets against our criteria. InsureTech AI is the top pick with a composite score of 79.2, strong financials, and strategic fit. VerifyFi and DataFin Analytics also score well. TradeMate offers high growth but carries elevated risk. LendSmart and PayFlow Solutions are viable but require caution.",
+    "top_recommendation": {
+      "name": "InsureTech AI",
+      "rating": "BUY",
+      "rationale": "Highest composite score, strong growth and profitability, strategic fit in high-priority InsurTech sector, manageable regulatory risk.",
+      "key_metrics": {
+        "composite_score": 79.2,
+        "revenue": "$75M",
+        "growth": "29.3%",
+        "valuation": "$375M"
+      }
+    },
+    "ranked_targets": [
+      {
+        "rank": 1,
+        "name": "InsureTech AI",
+        "rating": "BUY",
+        "composite_score": 79.2,
+        "one_line_rationale": "Top scorer with strong financials and strategic fit."
+      },
+      {
+        "rank": 2,
+        "name": "DataFin Analytics",
+        "rating": "BUY",
+        "composite_score": 77.8,
+        "one_line_rationale": "Solid financials and low risk, but limited growth upside."
+      },
+      {
+        "rank": 3,
+        "name": "VerifyFi",
+        "rating": "BUY",
+        "composite_score": 77.8,
+        "one_line_rationale": "High growth and strategic fit, moderate risk."
+      },
+      {
+        "rank": 4,
+        "name": "TradeMate",
+        "rating": "BUY",
+        "composite_score": 73.3,
+        "one_line_rationale": "High growth but significant regulatory and tech risks."
+      },
+      {
+        "rank": 5,
+        "name": "LendSmart",
+        "rating": "HOLD / CONSIDER",
+        "composite_score": 68.5,
+        "one_line_rationale": "Good financials but sector headwinds and regulatory risks."
+      },
+      {
+        "rank": 6,
+        "name": "PayFlow Solutions",
+        "rating": "HOLD / CONSIDER",
+        "composite_score": 66.0,
+        "one_line_rationale": "Decent growth but competitive pressures and portfolio overlap."
+      }
+    ],
+    "risk_watchlist": [
+      {
+        "company": "TradeMate",
+        "risk": "SEC Reg SCI compliance issue and high tech debt with cybersecurity vulnerabilities."
+      },
+      {
+        "company": "LendSmart",
+        "risk": "Regulatory risks from CFPB rule and state usury challenges."
+      },
+      {
+        "company": "PayFlow Solutions",
+        "risk": "Intense competition from Stripe/Square and potential portfolio overlap with SwiftPay."
+      }
+    ],
+    "next_steps": [
+      "Initiate due diligence on InsureTech AI, focusing on regulatory compliance and technology stack.",
+      "Conduct deeper financial modeling for VerifyFi to confirm path to 25% IRR.",
+      "Evaluate TradeMate's remediation plan for SEC and cybersecurity issues before proceeding.",
+      "Assess portfolio synergy and conflict with PayFlow Solutions and existing SwiftPay investment."
+    ],
+    "closing_note": "The pipeline is robust with multiple attractive targets, but careful risk management is essential for the higher-risk opportunities."
+  },
+  "benchmark": {
+    "phase": "fanout_optimizer",
+    "date": "2026-06-03T12:28:05.269164",
+    "config": {
+      "companies_total": 10,
+      "companies_screened": 6,
+      "analysts_per_company": 3,
+      "max_workers": 6
+    },
+    "timings": {
+      "scout_shared_sec": 9.62,
+      "sequential_analysis_sec": 82.7,
+      "fanout_analysis_sec": 18.12,
+      "speedup_x": 4.56,
+      "time_reduction_pct": 78.1
+    },
+    "sequential_results": {
+      "FNT-001": {
+        "financial_score": 78,
+        "risk_score": 55,
+        "strategy_score": 72
+      },
+      "FNT-003": {
+        "financial_score": 78,
+        "risk_score": 68,
+        "strategy_score": 88
+      },
+      "FNT-006": {
+        "financial_score": 78,
+        "risk_score": 55,
+        "strategy_score": 72
+      },
+      "FNT-008": {
+        "financial_score": 78,
+        "risk_score": 75,
+        "strategy_score": 72
+      },
+      "FNT-009": {
+        "financial_score": 82,
+        "risk_score": 65,
+        "strategy_score": 88
+      },
+      "FNT-010": {
+        "financial_score": 82,
+        "risk_score": 55,
+        "strategy_score": 88
+      }
+    },
+    "fanout_results": {
+      "FNT-001": {
+        "financial_score": 72,
+        "risk_score": 55,
+        "strategy_score": 72
+      },
+      "FNT-003": {
+        "financial_score": 82,
+        "risk_score": 68,
+        "strategy_score": 85
+      },
+      "FNT-006": {
+        "financial_score": 78,
+        "risk_score": 55,
+        "strategy_score": 72
+      },
+      "FNT-008": {
+        "financial_score": 78,
+        "risk_score": 78,
+        "strategy_score": 75
+      },
+      "FNT-009": {
+        "financial_score": 85,
+        "risk_score": 68,
+        "strategy_score": 88
+      },
+      "FNT-010": {
+        "financial_score": 82,
+        "risk_score": 55,
+        "strategy_score": 85
+      }
+    },
+    "verdict": "Fan-out achieves 4.56x speedup (78.1% time reduction) by parallelizing 18 analyst calls across 6 companies."
+  },
+  "evals": {
+    "iterations": [
+      {
+        "iteration": 1,
+        "timestamp": "2026-06-03T12:35:53.423483",
+        "evaluation": {
+          "overall_score": 7.8,
+          "grade": "7.8",
+          "production_readiness": "ALMOST",
+          "architecture_design": {
+            "score": 8.5,
+            "strengths": [
+              "Clear agent decomposition with distinct responsibilities (scout, financial, risk, strategy, report writer)",
+              "Effective fan-out strategy parallelizing 3 analysis agents, achieving 4.56x speedup",
+              "File/folder memory provides meaningful state for audit and debugging",
+              "Orchestrator code is well-structured with clear phases and logging"
+            ],
+            "weaknesses": [
+              "Scout agent handles both screening and scoring, which could be split for clarity",
+              "No fallback mechanism if an agent call fails (e.g., retry or default scores)",
+              "Memory is saved per agent but not used for cross-agent context (e.g., risk flags influencing financial analysis)"
+            ],
+            "suggestions": [
+              "Add retry logic with exponential backoff for LLM calls",
+              "Consider a separate 'scorer' agent to compute composite scores, reducing scout's responsibility",
+              "Implement a shared context store so later agents can reference earlier findings"
+            ]
+          },
+          "prompt_quality": {
+            "score": 7.5,
+            "best_agent": "risk_analyst",
+            "worst_agent": "scout",
+            "strengths": [
+              "All prompts have clear output JSON formats enforcing consistency",
+              "Risk analyst prompt has well-defined risk categories and tolerance levels",
+              "Strategy analyst prompt includes specific portfolio context and synergy dimensions"
+            ],
+            "weaknesses": [
+              "Scout prompt's screening criteria are not fully enforced (e.g., NeoBank Digital passed despite negative EBITDA and low cash runway)",
+              "Financial analyst prompt lacks explicit guidance on weighting of sub-scores",
+              "Report writer prompt does not specify how to handle conflicting scores from different agents"
+            ],
+            "suggestions": [
+              "Scout prompt: add explicit rule that companies with negative EBITDA and <6 months cash runway should fail regardless of revenue/growth",
+              "Financial analyst prompt: add a note that financial_score should be a weighted average of sub-scores (e.g., revenue 30%, profitability 30%, valuation 20%, risk 20%)",
+              "Report writer prompt: include instruction to flag and explain any major discrepancies between agent scores"
+            ]
+          },
+          "output_quality": {
+            "score": 7.8,
+            "strengths": [
+              "Scores and rationales are generally consistent across companies (e.g., InsureTech AI consistently high)",
+              "Board memo is actionable with clear top recommendation, ranked targets, and next steps",
+              "Risk flags are specific and tied to data (e.g., SEC Reg SCI compliance for TradeMate)"
+            ],
+            "weaknesses": [
+              "Some scores appear inconsistent: e.g., TradeMate gets financial_score 82 from financial analyst but risk_score 55 from risk analyst, yet composite is 73.3; the memo rates it BUY despite high risk",
+              "Scout's opportunity_score for NeoBank Digital (30) contradicts its 'passed: false' decision",
+              "Report writer memo uses composite scores that don't match the weighted formula (e.g., InsureTech AI: 82*0.4 + 72*0.35 + 85*0.25 = 79.2, correct; but VerifyFi: 82*0.4 + 68*0.35 + 85*0.25 = 78.05, memo says 77.8)"
+            ],
+            "hallucination_risk": "LOW"
+          },
+          "scalability": {
+            "score": 7.0,
+            "strengths": [
+              "Fan-out strategy with ThreadPoolExecutor scales well for parallel LLM calls",
+              "File-based memory is simple and can handle many companies without database overhead",
+              "Orchestrator code is modular and can be extended with new agents"
+            ],
+            "weaknesses": [
+              "All agents use the same LLM endpoint; rate limits could become a bottleneck with 100+ targets",
+              "No caching mechanism for repeated calls (e.g., same company data analyzed multiple times)",
+              "Logging is file-based and may become unwieldy with large-scale runs"
+            ],
+            "bottleneck": "LLM API rate limits and latency; with 100+ targets, the fan-out would generate 300+ parallel calls, potentially hitting rate limits or causing timeouts."
+          },
+          "top_improvements": [
+            {
+              "priority": 1,
+              "area": "Scalability",
+              "specific_change": "Add retry logic with exponential backoff and rate-limit handling to the call_agent function; consider batching or using a queue for LLM calls",
+              "affected_agent": "orchestrator",
+              "expected_impact": "HIGH"
+            },
+            {
+              "priority": 2,
+              "area": "Prompt Quality",
+              "specific_change": "Update scout prompt to include explicit hard fails for negative EBITDA and <6 months cash runway, and clarify that opportunity_score should only be assigned to passing companies",
+              "affected_agent": "scout",
+              "expected_impact": "HIGH"
+            },
+            {
+              "priority": 3,
+              "area": "Output Consistency",
+              "specific_change": "Standardize composite score calculation in the orchestrator and ensure the report writer uses the same formula; add a validation step to flag score discrepancies",
+              "affected_agent": "orchestrator, report_writer",
+              "expected_impact": "MEDIUM"
+            }
+          ],
+          "summary": "The multi-agent M&A evaluation system is well-architected with a clear agent decomposition and an effective fan-out strategy that achieves 4.56x speedup. Prompts are generally strong, especially the risk analyst, but the scout prompt has enforcement gaps that can lead to inconsistent screening. Outputs are actionable and low in hallucination risk, though some score inconsistencies exist. Scalability is adequate for moderate workloads but will hit LLM rate limits with 100+ targets. With targeted improvements\u2014adding retry logic, hardening scout criteria, and standardizing score calculations\u2014the system can reach production readiness."
+        }
+      },
+      {
+        "iteration": 2,
+        "timestamp": "2026-06-03T12:43:47.596173",
+        "type": "post_improvement",
+        "agents_improved": [
+          "scout",
+          "report_writer"
+        ],
+        "evaluation": {
+          "overall_score": 8.5,
+          "grade": "8.5",
+          "production_readiness": "ALMOST",
+          "architecture_design": {
+            "score": 8.7,
+            "strengths": [
+              "Clear agent decomposition with distinct responsibilities (scout, financial, risk, strategy, report writer)",
+              "Effective fan-out strategy parallelizing 3 analysis agents, achieving 4.56x speedup",
+              "File/folder memory provides meaningful state for audit and debugging",
+              "Orchestrator code is well-structured with clear phases and logging"
+            ],
+            "weaknesses": [
+              "No fallback mechanism if an agent call fails (e.g., retry or default scores)",
+              "Memory is saved per agent but not used for cross-agent context (e.g., risk flags influencing financial analysis)"
+            ],
+            "suggestions": [
+              "Add retry logic with exponential backoff for LLM calls",
+              "Implement a shared context store so later agents can reference earlier findings"
+            ]
+          },
+          "prompt_quality": {
+            "score": 8.2,
+            "best_agent": "risk_analyst",
+            "worst_agent": "scout",
+            "strengths": [
+              "All prompts have clear output JSON formats enforcing consistency",
+              "Risk analyst prompt has well-defined risk categories and tolerance levels",
+              "Strategy analyst prompt includes specific portfolio context and synergy dimensions",
+              "Scout prompt now includes explicit hard fail conditions (negative EBITDA, <6 months cash runway)"
+            ],
+            "weaknesses": [
+              "Scout prompt still allows opportunity_score for failing companies (though improved, still possible if not enforced)",
+              "Financial analyst prompt lacks explicit guidance on weighting of sub-scores",
+              "Report writer prompt's validation step is good but could be more integrated"
+            ],
+            "suggestions": [
+              "Scout prompt: add explicit instruction that opportunity_score must be null when passed=false",
+              "Financial analyst prompt: add a note that financial_score should be a weighted average of sub-scores (e.g., revenue 30%, profitability 30%, valuation 20%, risk 20%)",
+              "Report writer prompt: include instruction to flag and explain any major discrepancies between agent scores"
+            ]
+          },
+          "output_quality": {
+            "score": 8.3,
+            "strengths": [
+              "Scores and rationales are generally consistent across companies (e.g., InsureTech AI consistently high)",
+              "Board memo is actionable with clear top recommendation, ranked targets, and next steps",
+              "Risk flags are specific and tied to data (e.g., SEC Reg SCI compliance for TradeMate)",
+              "Report writer now includes score discrepancy validation, improving accuracy"
+            ],
+            "weaknesses": [
+              "Some scores may still have minor inconsistencies due to rounding or agent interpretation",
+              "Scout's opportunity_score for NeoBank Digital (30) contradicts its 'passed: false' decision (though improved, still possible if not enforced)"
+            ],
+            "hallucination_risk": "LOW"
+          },
+          "scalability": {
+            "score": 7.5,
+            "strengths": [
+              "Fan-out strategy with ThreadPoolExecutor scales well for parallel LLM calls",
+              "File-based memory is simple and can handle many companies without database overhead",
+              "Orchestrator code is modular and can be extended with new agents"
+            ],
+            "weaknesses": [
+              "All agents use the same LLM endpoint; rate limits could become a bottleneck with 100+ targets",
+              "No caching mechanism for repeated calls (e.g., same company data analyzed multiple times)",
+              "Logging is file-based and may become unwieldy with large-scale runs"
+            ],
+            "bottleneck": "LLM API rate limits and latency; with 100+ targets, the fan-out would generate 300+ parallel calls, potentially hitting rate limits or causing timeouts."
+          },
+          "top_improvements": [
+            {
+              "priority": 1,
+              "area": "Scalability",
+              "specific_change": "Add retry logic with exponential backoff and rate-limit handling to the call_agent function; consider batching or using a queue for LLM calls",
+              "affected_agent": "orchestrator",
+              "expected_impact": "HIGH"
+            },
+            {
+              "priority": 2,
+              "area": "Prompt Quality",
+              "specific_change": "Update scout prompt to explicitly set opportunity_score to null when passed=false, and add a validation step in the orchestrator to enforce this",
+              "affected_agent": "scout",
+              "expected_impact": "HIGH"
+            },
+            {
+              "priority": 3,
+              "area": "Output Consistency",
+              "specific_change": "Standardize composite score calculation in the orchestrator and ensure the report writer uses the same formula; add a validation step to flag score discrepancies",
+              "affected_agent": "orchestrator, report_writer",
+              "expected_impact": "MEDIUM"
+            }
+          ],
+          "summary": "The improved multi-agent M&A evaluation system shows clear progress, with the scout prompt now including explicit hard fail conditions and the report writer incorporating score validation. The architecture remains strong with effective fan-out and clear agent decomposition. Prompt quality has improved, though the scout prompt still has minor enforcement gaps. Output quality is high with low hallucination risk, and the system is nearly production-ready. Scalability remains the primary concern due to LLM rate limits, but the improvements have raised the overall score from 7.8 to 8.5."
+        }
+      },
+      {
+        "iteration": 3,
+        "timestamp": "2026-06-03T12:46:39.099780",
+        "type": "post_improvement",
+        "agents_improved": [
+          "scout",
+          "report_writer"
+        ],
+        "evaluation": {
+          "overall_score": 9.0,
+          "grade": "9.0",
+          "production_readiness": "ALMOST",
+          "architecture_design": {
+            "score": 9.0,
+            "strengths": [
+              "Clear agent decomposition with distinct responsibilities",
+              "Effective fan-out strategy achieving 4.56x speedup",
+              "File/folder memory provides meaningful state for audit and debugging",
+              "Orchestrator code is well-structured with clear phases and logging"
+            ],
+            "weaknesses": [
+              "No fallback mechanism if an agent call fails (e.g., retry or default scores)",
+              "Memory is saved per agent but not used for cross-agent context"
+            ],
+            "suggestions": [
+              "Add retry logic with exponential backoff for LLM calls",
+              "Implement a shared context store so later agents can reference earlier findings"
+            ]
+          },
+          "prompt_quality": {
+            "score": 8.8,
+            "best_agent": "risk_analyst",
+            "worst_agent": "scout",
+            "strengths": [
+              "All prompts have clear output JSON formats enforcing consistency",
+              "Risk analyst prompt has well-defined risk categories and tolerance levels",
+              "Strategy analyst prompt includes specific portfolio context and synergy dimensions",
+              "Scout prompt now explicitly sets opportunity_score to null when passed=false"
+            ],
+            "weaknesses": [
+              "Financial analyst prompt lacks explicit guidance on weighting of sub-scores",
+              "Report writer prompt's validation step is good but could be more integrated"
+            ],
+            "suggestions": [
+              "Financial analyst prompt: add a note that financial_score should be a weighted average of sub-scores (e.g., revenue 30%, profitability 30%, valuation 20%, risk 20%)",
+              "Report writer prompt: include instruction to flag and explain any major discrepancies between agent scores"
+            ]
+          },
+          "output_quality": {
+            "score": 8.7,
+            "strengths": [
+              "Scores and rationales are generally consistent across companies",
+              "Board memo is actionable with clear top recommendation, ranked targets, and next steps",
+              "Risk flags are specific and tied to data",
+              "Report writer now includes score discrepancy validation, improving accuracy"
+            ],
+            "weaknesses": [
+              "Some scores may still have minor inconsistencies due to rounding or agent interpretation"
+            ],
+            "hallucination_risk": "LOW"
+          },
+          "scalability": {
+            "score": 7.8,
+            "strengths": [
+              "Fan-out strategy with ThreadPoolExecutor scales well for parallel LLM calls",
+              "File-based memory is simple and can handle many companies without database overhead",
+              "Orchestrator code is modular and can be extended with new agents"
+            ],
+            "weaknesses": [
+              "All agents use the same LLM endpoint; rate limits could become a bottleneck with 100+ targets",
+              "No caching mechanism for repeated calls",
+              "Logging is file-based and may become unwieldy with large-scale runs"
+            ],
+            "bottleneck": "LLM API rate limits and latency; with 100+ targets, the fan-out would generate 300+ parallel calls, potentially hitting rate limits or causing timeouts."
+          },
+          "top_improvements": [
+            {
+              "priority": 1,
+              "area": "Scalability",
+              "specific_change": "Add retry logic with exponential backoff and rate-limit handling to the call_agent function; consider batching or using a queue for LLM calls",
+              "affected_agent": "orchestrator",
+              "expected_impact": "HIGH"
+            },
+            {
+              "priority": 2,
+              "area": "Prompt Quality",
+              "specific_change": "Update scout prompt to explicitly set opportunity_score to null when passed=false, and add a validation step in the orchestrator to enforce this",
+              "affected_agent": "scout",
+              "expected_impact": "HIGH"
+            },
+            {
+              "priority": 3,
+              "area": "Output Consistency",
+              "specific_change": "Standardize composite score calculation in the orchestrator and ensure the report writer uses the same formula; add a validation step to flag score discrepancies",
+              "affected_agent": "orchestrator, report_writer",
+              "expected_impact": "MEDIUM"
+            }
+          ],
+          "summary": "The improved multi-agent M&A evaluation system shows clear progress, with the scout prompt now explicitly setting opportunity_score to null for failing companies and the report writer incorporating score validation. The architecture remains strong with effective fan-out and clear agent decomposition. Prompt quality has improved, though the financial analyst prompt still lacks explicit weighting guidance. Output quality is high with low hallucination risk, and the system is nearly production-ready. Scalability remains the primary concern due to LLM rate limits, but the improvements have raised the overall score from 8.5 to 9.0."
+        }
+      },
+      {
+        "iteration": 4,
+        "timestamp": "2026-06-03T12:51:15.171803",
+        "type": "post_improvement",
+        "agents_improved": [
+          "scout",
+          "report_writer"
+        ],
+        "evaluation": {
+          "overall_score": 9.2,
+          "grade": "9.2",
+          "production_readiness": "ALMOST",
+          "architecture_design": {
+            "score": 9.2,
+            "strengths": [
+              "Clear agent decomposition with distinct responsibilities",
+              "Effective fan-out strategy achieving 4.56x speedup",
+              "File/folder memory provides meaningful state for audit and debugging",
+              "Orchestrator code is well-structured with clear phases and logging"
+            ],
+            "weaknesses": [
+              "No fallback mechanism if an agent call fails (e.g., retry or default scores)",
+              "Memory is saved per agent but not used for cross-agent context"
+            ],
+            "suggestions": [
+              "Add retry logic with exponential backoff for LLM calls",
+              "Implement a shared context store so later agents can reference earlier findings"
+            ]
+          },
+          "prompt_quality": {
+            "score": 9.0,
+            "best_agent": "risk_analyst",
+            "worst_agent": "financial_analyst",
+            "strengths": [
+              "All prompts have clear output JSON formats enforcing consistency",
+              "Risk analyst prompt has well-defined risk categories and tolerance levels",
+              "Strategy analyst prompt includes specific portfolio context and synergy dimensions",
+              "Scout prompt now explicitly sets opportunity_score to null when passed=false"
+            ],
+            "weaknesses": [
+              "Financial analyst prompt lacks explicit guidance on weighting of sub-scores",
+              "Report writer prompt's validation step is good but could be more integrated"
+            ],
+            "suggestions": [
+              "Financial analyst prompt: add a note that financial_score should be a weighted average of sub-scores (e.g., revenue 30%, profitability 30%, valuation 20%, risk 20%)",
+              "Report writer prompt: include instruction to flag and explain any major discrepancies between agent scores"
+            ]
+          },
+          "output_quality": {
+            "score": 9.0,
+            "strengths": [
+              "Scores and rationales are generally consistent across companies",
+              "Board memo is actionable with clear top recommendation, ranked targets, and next steps",
+              "Risk flags are specific and tied to data",
+              "Report writer now includes score discrepancy validation, improving accuracy"
+            ],
+            "weaknesses": [
+              "Some scores may still have minor inconsistencies due to rounding or agent interpretation"
+            ],
+            "hallucination_risk": "LOW"
+          },
+          "scalability": {
+            "score": 8.0,
+            "strengths": [
+              "Fan-out strategy with ThreadPoolExecutor scales well for parallel LLM calls",
+              "File-based memory is simple and can handle many companies without database overhead",
+              "Orchestrator code is modular and can be extended with new agents"
+            ],
+            "weaknesses": [
+              "All agents use the same LLM endpoint; rate limits could become a bottleneck with 100+ targets",
+              "No caching mechanism for repeated calls",
+              "Logging is file-based and may become unwieldy with large-scale runs"
+            ],
+            "bottleneck": "LLM API rate limits and latency; with 100+ targets, the fan-out would generate 300+ parallel calls, potentially hitting rate limits or causing timeouts."
+          },
+          "top_improvements": [
+            {
+              "priority": 1,
+              "area": "Scalability",
+              "specific_change": "Add retry logic with exponential backoff and rate-limit handling to the call_agent function; consider batching or using a queue for LLM calls",
+              "affected_agent": "orchestrator",
+              "expected_impact": "HIGH"
+            },
+            {
+              "priority": 2,
+              "area": "Prompt Quality",
+              "specific_change": "Update financial analyst prompt to include explicit weighting guidance for sub-scores (e.g., revenue growth 30%, profitability 30%, valuation 20%, risk 20%)",
+              "affected_agent": "financial_analyst",
+              "expected_impact": "MEDIUM"
+            },
+            {
+              "priority": 3,
+              "area": "Output Consistency",
+              "specific_change": "Standardize composite score calculation in the orchestrator and ensure the report writer uses the same formula; add a validation step to flag score discrepancies",
+              "affected_agent": "orchestrator, report_writer",
+              "expected_impact": "MEDIUM"
+            }
+          ],
+          "summary": "The improved multi-agent M&A evaluation system shows clear progress, with the scout prompt now explicitly setting opportunity_score to null for failing companies and the report writer incorporating score validation. The architecture remains strong with effective fan-out and clear agent decomposition. Prompt quality has improved, though the financial analyst prompt still lacks explicit weighting guidance. Output quality is high with low hallucination risk, and the system is nearly production-ready. Scalability remains the primary concern due to LLM rate limits, but the improvements have raised the overall score from 9.0 to 9.2."
+        }
+      }
+    ]
+  },
+  "improvement_loop": {
+    "phase": "improvement_loop",
+    "date": "2026-06-03T12:51:15.174413",
+    "baseline_iteration": 3,
+    "before_score": 9.0,
+    "after_score": 9.2,
+    "agents_improved": {
+      "scout": [
+        "Update scout prompt to explicitly set opportunity_score to null when passed=fals"
+      ],
+      "report_writer": [
+        "Standardize composite score calculation in the orchestrator and ensure the repor"
+      ]
+    },
+    "delta": "0.2"
+  },
+  "multi_agent_log": {
+    "run_id": "multi_agent_20260603_122034",
+    "agent_type": "multi_agent_orchestrated",
+    "strategy": "fanout_parallel_analysis",
+    "log_entries": [
+      {
+        "timestamp": "2026-06-03T12:20:34.688370",
+        "run_id": "multi_agent_20260603_122034",
+        "step": "scout_start",
+        "detail": "Scout evaluating 10 companies",
+        "elapsed_sec": 0
+      },
+      {
+        "timestamp": "2026-06-03T12:20:44.884367",
+        "run_id": "multi_agent_20260603_122034",
+        "step": "scout_complete",
+        "detail": "6/10 passed screening (10.196s)",
+        "elapsed_sec": 10.196
+      },
+      {
+        "timestamp": "2026-06-03T12:20:44.884367",
+        "run_id": "multi_agent_20260603_122034",
+        "step": "scout_result",
+        "detail": "PayFlow Solutions: PASS",
+        "elapsed_sec": 0
+      },
+      {
+        "timestamp": "2026-06-03T12:20:44.884367",
+        "run_id": "multi_agent_20260603_122034",
+        "step": "scout_result",
+        "detail": "NeoBank Digital: FAIL",
+        "elapsed_sec": 0
+      },
+      {
+        "timestamp": "2026-06-03T12:20:44.885361",
+        "run_id": "multi_agent_20260603_122034",
+        "step": "scout_result",
+        "detail": "InsureTech AI: PASS",
+        "elapsed_sec": 0
+      },
+      {
+        "timestamp": "2026-06-03T12:20:44.885361",
+        "run_id": "multi_agent_20260603_122034",
+        "step": "scout_result",
+        "detail": "CryptoGuard Compliance: FAIL",
+        "elapsed_sec": 0
+      },
+      {
+        "timestamp": "2026-06-03T12:20:44.885361",
+        "run_id": "multi_agent_20260603_122034",
+        "step": "scout_result",
+        "detail": "WealthGrid: FAIL",
+        "elapsed_sec": 0
+      },
+      {
+        "timestamp": "2026-06-03T12:20:44.885361",
+        "run_id": "multi_agent_20260603_122034",
+        "step": "scout_result",
+        "detail": "LendSmart: PASS",
+        "elapsed_sec": 0
+      },
+      {
+        "timestamp": "2026-06-03T12:20:44.885361",
+        "run_id": "multi_agent_20260603_122034",
+        "step": "scout_result",
+        "detail": "BlockSettle: FAIL",
+        "elapsed_sec": 0
+      },
+      {
+        "timestamp": "2026-06-03T12:20:44.885361",
+        "run_id": "multi_agent_20260603_122034",
+        "step": "scout_result",
+        "detail": "DataFin Analytics: PASS",
+        "elapsed_sec": 0
+      },
+      {
+        "timestamp": "2026-06-03T12:20:44.885361",
+        "run_id": "multi_agent_20260603_122034",
+        "step": "scout_result",
+        "detail": "VerifyFi: PASS",
+        "elapsed_sec": 0
+      },
+      {
+        "timestamp": "2026-06-03T12:20:44.885361",
+        "run_id": "multi_agent_20260603_122034",
+        "step": "scout_result",
+        "detail": "TradeMate: PASS",
+        "elapsed_sec": 0
+      },
+      {
+        "timestamp": "2026-06-03T12:20:44.885361",
+        "run_id": "multi_agent_20260603_122034",
+        "step": "fanout_start",
+        "detail": "Fanning out 6 companies \u00d7 3 analysts = 18 tasks",
+        "elapsed_sec": 0
+      },
+      {
+        "timestamp": "2026-06-03T12:20:48.407391",
+        "run_id": "multi_agent_20260603_122034",
+        "step": "analyst_done",
+        "detail": "[1/18] financial_analyst: PayFlow Solutions",
+        "elapsed_sec": 0
+      },
+      {
+        "timestamp": "2026-06-03T12:20:48.641384",
+        "run_id": "multi_agent_20260603_122034",
+        "step": "analyst_done",
+        "detail": "[2/18] financial_analyst: InsureTech AI",
+        "elapsed_sec": 0
+      },
+      {
+        "timestamp": "2026-06-03T12:20:49.843546",
+        "run_id": "multi_agent_20260603_122034",
+        "step": "analyst_done",
+        "detail": "[3/18] risk_analyst: PayFlow Solutions",
+        "elapsed_sec": 0
+      },
+      {
+        "timestamp": "2026-06-03T12:20:50.337195",
+        "run_id": "multi_agent_20260603_122034",
+        "step": "analyst_done",
+        "detail": "[4/18] strategy_analyst: PayFlow Solutions",
+        "elapsed_sec": 0
+      },
+      {
+        "timestamp": "2026-06-03T12:20:51.836227",
+        "run_id": "multi_agent_20260603_122034",
+        "step": "analyst_done",
+        "detail": "[5/18] financial_analyst: LendSmart",
+        "elapsed_sec": 0
+      },
+      {
+        "timestamp": "2026-06-03T12:20:51.965605",
+        "run_id": "multi_agent_20260603_122034",
+        "step": "analyst_done",
+        "detail": "[6/18] risk_analyst: InsureTech AI",
+        "elapsed_sec": 0
+      },
+      {
+        "timestamp": "2026-06-03T12:20:52.992596",
+        "run_id": "multi_agent_20260603_122034",
+        "step": "analyst_done",
+        "detail": "[7/18] strategy_analyst: InsureTech AI",
+        "elapsed_sec": 0
+      },
+      {
+        "timestamp": "2026-06-03T12:20:53.905217",
+        "run_id": "multi_agent_20260603_122034",
+        "step": "analyst_done",
+        "detail": "[8/18] risk_analyst: LendSmart",
+        "elapsed_sec": 0
+      },
+      {
+        "timestamp": "2026-06-03T12:20:54.399069",
+        "run_id": "multi_agent_20260603_122034",
+        "step": "analyst_done",
+        "detail": "[9/18] strategy_analyst: LendSmart",
+        "elapsed_sec": 0
+      },
+      {
+        "timestamp": "2026-06-03T12:20:55.946770",
+        "run_id": "multi_agent_20260603_122034",
+        "step": "analyst_done",
+        "detail": "[10/18] financial_analyst: DataFin Analytics",
+        "elapsed_sec": 0
+      },
+      {
+        "timestamp": "2026-06-03T12:20:56.634329",
+        "run_id": "multi_agent_20260603_122034",
+        "step": "analyst_done",
+        "detail": "[11/18] risk_analyst: DataFin Analytics",
+        "elapsed_sec": 0
+      },
+      {
+        "timestamp": "2026-06-03T12:20:57.479311",
+        "run_id": "multi_agent_20260603_122034",
+        "step": "analyst_done",
+        "detail": "[12/18] strategy_analyst: DataFin Analytics",
+        "elapsed_sec": 0
+      },
+      {
+        "timestamp": "2026-06-03T12:20:57.755313",
+        "run_id": "multi_agent_20260603_122034",
+        "step": "analyst_done",
+        "detail": "[13/18] financial_analyst: VerifyFi",
+        "elapsed_sec": 0
+      },
+      {
+        "timestamp": "2026-06-03T12:20:59.638576",
+        "run_id": "multi_agent_20260603_122034",
+        "step": "analyst_done",
+        "detail": "[14/18] strategy_analyst: VerifyFi",
+        "elapsed_sec": 0
+      },
+      {
+        "timestamp": "2026-06-03T12:20:59.840470",
+        "run_id": "multi_agent_20260603_122034",
+        "step": "analyst_done",
+        "detail": "[15/18] financial_analyst: TradeMate",
+        "elapsed_sec": 0
+      },
+      {
+        "timestamp": "2026-06-03T12:21:00.356197",
+        "run_id": "multi_agent_20260603_122034",
+        "step": "analyst_done",
+        "detail": "[16/18] risk_analyst: VerifyFi",
+        "elapsed_sec": 0
+      },
+      {
+        "timestamp": "2026-06-03T12:21:02.285063",
+        "run_id": "multi_agent_20260603_122034",
+        "step": "analyst_done",
+        "detail": "[17/18] strategy_analyst: TradeMate",
+        "elapsed_sec": 0
+      },
+      {
+        "timestamp": "2026-06-03T12:21:03.799201",
+        "run_id": "multi_agent_20260603_122034",
+        "step": "analyst_done",
+        "detail": "[18/18] risk_analyst: TradeMate",
+        "elapsed_sec": 0
+      },
+      {
+        "timestamp": "2026-06-03T12:21:03.799201",
+        "run_id": "multi_agent_20260603_122034",
+        "step": "fanout_complete",
+        "detail": "All 18/18 analyses done (18.914s)",
+        "elapsed_sec": 18.914
+      },
+      {
+        "timestamp": "2026-06-03T12:21:03.799201",
+        "run_id": "multi_agent_20260603_122034",
+        "step": "scoring_start",
+        "detail": "Scoring 6 companies",
+        "elapsed_sec": 0
+      },
+      {
+        "timestamp": "2026-06-03T12:21:03.799201",
+        "run_id": "multi_agent_20260603_122034",
+        "step": "scoring",
+        "detail": "PayFlow Solutions: composite=66.05 (F:72 R:55 S:72) \u2192 HOLD / CONSIDER",
+        "elapsed_sec": 0
+      },
+      {
+        "timestamp": "2026-06-03T12:21:03.799201",
+        "run_id": "multi_agent_20260603_122034",
+        "step": "scoring",
+        "detail": "InsureTech AI: composite=79.25 (F:82 R:72 S:85) \u2192 BUY",
+        "elapsed_sec": 0
+      },
+      {
+        "timestamp": "2026-06-03T12:21:03.800818",
+        "run_id": "multi_agent_20260603_122034",
+        "step": "scoring",
+        "detail": "LendSmart: composite=68.45 (F:78 R:55 S:72) \u2192 HOLD / CONSIDER",
+        "elapsed_sec": 0
+      },
+      {
+        "timestamp": "2026-06-03T12:21:03.800818",
+        "run_id": "multi_agent_20260603_122034",
+        "step": "scoring",
+        "detail": "DataFin Analytics: composite=77.80000000000001 (F:82 R:75 S:75) \u2192 BUY",
+        "elapsed_sec": 0
+      },
+      {
+        "timestamp": "2026-06-03T12:21:03.800818",
+        "run_id": "multi_agent_20260603_122034",
+        "step": "scoring",
+        "detail": "VerifyFi: composite=77.85 (F:82 R:68 S:85) \u2192 BUY",
+        "elapsed_sec": 0
+      },
+      {
+        "timestamp": "2026-06-03T12:21:03.800818",
+        "run_id": "multi_agent_20260603_122034",
+        "step": "scoring",
+        "detail": "TradeMate: composite=73.30000000000001 (F:82 R:55 S:85) \u2192 BUY",
+        "elapsed_sec": 0
+      },
+      {
+        "timestamp": "2026-06-03T12:21:03.800818",
+        "run_id": "multi_agent_20260603_122034",
+        "step": "report_start",
+        "detail": "Generating Board memo",
+        "elapsed_sec": 0
+      },
+      {
+        "timestamp": "2026-06-03T12:21:10.185333",
+        "run_id": "multi_agent_20260603_122034",
+        "step": "report_complete",
+        "detail": "Memo generated (6.385s)",
+        "elapsed_sec": 6.385
+      },
+      {
+        "timestamp": "2026-06-03T12:21:10.189443",
+        "run_id": "multi_agent_20260603_122034",
+        "step": "pipeline_complete",
+        "detail": "Total time: 35.501s",
+        "elapsed_sec": 35.501
+      }
+    ]
+  },
+  "memory_counts": {
+    "financial_analyst": 6,
+    "report_writer": 1,
+    "risk_analyst": 6,
+    "scout": 1,
+    "strategy_analyst": 6
+  },
+  "improved_agents": []
+};
+
+function el(id) { return document.getElementById(id); }
+
+function build() {
+  // --- KPI Cards ---
+  const ma = D.multi_agent || {};
+  const ranked = ma.ranked_companies || [];
+  const top = ranked[0] || {};
+  const strong = ranked.filter(c => c.rating === 'STRONG BUY').length;
+  const avg = ranked.length ? (ranked.reduce((s,c) => s + (c.composite_score||0), 0) / ranked.length).toFixed(1) : 0;
+  const bench = D.benchmark || {};
+  const timings = bench.timings || {};
+
+  const cards = [
+    { l:'Targets Screened', v:ma.passed_screening||0, s:'Passed investment criteria', c:'b' },
+    { l:'Strong Buy', v:strong, s:'Top-tier recommendations', c:'g' },
+    { l:'Avg Composite', v:avg, s:'Across all ranked targets', c:'y' },
+    { l:'Speedup', v:(timings.speedup_x||'—')+'x', s:'Fan-out vs sequential', c:'b' },
+    { l:'Top Pick', v:top.name||'—', s:(top.rating||'')+' · '+(top.composite_score||''), c:'g' },
+    { l:'Eval Score', v:(D.evals.iterations||[]).length ? D.evals.iterations[D.evals.iterations.length-1].evaluation.overall_score + '/10' : '—', s:'Architecture grade', c:'b' },
+  ];
+
+  el('cards').innerHTML = cards.map(c => `<div class="card"><div class="lbl">${c.l}</div><div class="val ${c.c}">${c.v}</div><div class="sub">${c.s}</div></div>`).join('');
+
+  // --- Pipeline Table ---
+  el('pipeline').innerHTML = ranked.map((c,i) => {
+    const cls = c.rating === 'STRONG BUY' ? 'tag-g' : c.rating === 'BUY' ? 'tag-b' : c.rating === 'HOLD / CONSIDER' ? 'tag-y' : 'tag-r';
+    const bc = (c.composite_score||0) >= 80 ? '#22c55e' : (c.composite_score||0) >= 65 ? '#38bdf8' : (c.composite_score||0) >= 50 ? '#eab308' : '#ef4444';
+    return `<tr>
+      <td>${i+1}</td><td>${c.name}</td><td>${c.sector}</td>
+      <td><b>${c.composite_score||'—'}</b><div class="bar"><div class="bar-f" style="width:${c.composite_score||0}%;background:${bc}"></div></div></td>
+      <td>${c.financial_score||'—'}</td><td>${c.risk_score||'—'}</td><td>${c.strategy_score||'—'}</td>
+      <td><span class="tag ${cls}">${c.rating||'—'}</span></td>
+      <td>${((c.revenue_2024||c.revenue||0)/1e6).toFixed(0)}M</td><td>${c.growth_rate||c.growth||0}%</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="10">No data — run multi_agent orchestrator first.</td></tr>';
+
+  // --- Heatmap ---
+  el('heatmap').innerHTML = ranked.map(c => {
+    const rs = c.risk_score || 100;
+    const lvl = rs >= 85 ? 'LOW' : rs >= 70 ? 'MED' : 'HIGH';
+    const hc = lvl === 'LOW' ? 'hl' : lvl === 'MED' ? 'hm' : 'hh';
+    return `<div class="heat-cell ${hc}"><div class="cname">${c.name}</div><div class="crisk">Risk: ${rs} (${lvl})</div></div>`;
+  }).join('') || '<div class="heat-cell"><div class="cname">No data</div></div>';
+
+  // --- Evaluator Scores ---
+  const evals = D.evals.iterations || [];
+  const last = evals.length ? evals[evals.length-1].evaluation : null;
+  if (last) {
+    const dims = [
+      { n:'Architecture', s:(last.architecture_design||{}).score||0 },
+      { n:'Prompts', s:(last.prompt_quality||{}).score||0 },
+      { n:'Output', s:(last.output_quality||{}).score||0 },
+      { n:'Scalability', s:(last.scalability||{}).score||0 }
+    ];
+    el('eval-scores').innerHTML = dims.map(d => {
+      const clr = d.s >= 8 ? 'g' : d.s >= 6 ? 'y' : 'r';
+      return `<div class="eval-cell"><div class="dim">${d.n}</div><div class="ds ${clr}">${d.s}/10</div></div>`;
+    }).join('');
+    el('eval-detail').innerHTML = `<div class="lbl">Overall: ${last.overall_score}/10 &middot; ${last.production_readiness||'—'}</div><div class="sub">${last.summary||''}</div>`;
+
+    // Show score progression across iterations
+    if (evals.length > 1) {
+      el('eval-detail').innerHTML += '<div style="margin-top:10px;"><div class="lbl">Score History</div>';
+      evals.forEach((e,i) => {
+        const sc = e.evaluation.overall_score || '—';
+        el('eval-detail').innerHTML += `<div class="score-row"><span>Iteration ${i+1} (${e.type||'initial'})</span><span class="b">${sc}/10</span></div>`;
+      });
+      el('eval-detail').innerHTML += '</div>';
+    }
+    el('final-score').textContent = last.overall_score + '/10';
+  } else {
+    el('eval-scores').innerHTML = '<div class="eval-cell"><div class="dim">No evaluation</div><div class="ds">—</div></div>';
+    el('eval-detail').innerHTML = '<div class="lbl">Run evaluator first</div><div class="sub">python evaluator\evaluator.py</div>';
+  }
+
+  // --- Improvement Loop ---
+  const loop = D.improvement_loop || {};
+  if (loop.before_score) {
+    const dlt = parseFloat(loop.delta||0);
+    el('loop-info').innerHTML = `
+      <div class="lbl">Before: ${loop.before_score}/10 → After: ${loop.after_score}/10</div>
+      <div class="sub">Agents improved: ${(D.improved_agents||[]).join(', ')||'none'}</div>
+      <div class="sub ${dlt > 0 ? 'g' : dlt < 0 ? 'r' : 'y'}">Delta: ${dlt > 0 ? '+' : ''}${dlt}</div>
+    `;
+  } else {
+    el('loop-info').innerHTML = '<div class="lbl">No improvement loop run yet</div><div class="sub">Run: python evaluator\improvement_loop.py</div>';
+  }
+
+  // --- Benchmark ---
+  if (timings.sequential_analysis_sec) {
+    el('bench-info').innerHTML = `
+      <div class="lbl">Sequential: ${timings.sequential_analysis_sec}s</div>
+      <div class="lbl">Fan-out: ${timings.fanout_analysis_sec}s</div>
+      <div class="val b">${timings.speedup_x}x faster</div>
+      <div class="sub">${timings.time_reduction_pct}% time reduction &middot; ${(bench.config||{}).max_workers||6} workers</div>
+    `;
+  } else {
+    el('bench-info').innerHTML = '<div class="lbl">No benchmark data</div><div class="sub">Run: python multi_agent\fanout.py</div>';
+  }
+
+  // --- Timeline ---
+  const tl = (D.multi_agent_log.log_entries || []).slice(-30);
+  el('timeline').innerHTML = tl.map(t => `
+    <div class="row"><span class="step">${t.step}</span><span class="detail">${t.detail}</span><span class="ts">${t.elapsed_sec}s</span></div>
+  `).join('') || '<div class="row"><span>No timeline data</span></div>';
+}
+
+build();
+</script>
+</body>
+</html>
