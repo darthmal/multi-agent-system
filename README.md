@@ -129,6 +129,8 @@ Assignment 8/
     generate_dashboard.py   # Static HTML generator
     server.py              # Interactive Flask dashboard server
     index.html             # Generated static dashboard (gitignored)
+  log_analyzer.py          # Phase 7: cross-phase log analysis
+  runbook.ipynb            # Jupyter notebook with all commands
 ```
 
 ## Logs
