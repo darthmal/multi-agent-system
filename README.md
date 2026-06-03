@@ -85,9 +85,13 @@ python dashboard\server.py
 ```
 
 ### Phase 7 — Log Analyzer
-Parses all JSON logs, produces before/after analysis report.
+Parses all JSON logs across phases. Produces timing stats, score distributions, evaluator progression, improvement deltas, and cross-phase comparison.
 
-_TODO_
+```bash
+python log_analyzer.py
+```
+
+Output: `logs/analysis_report.json` + printed summary.
 
 ### Phase 8 — Final Write-up
 What broke, what you'd change, production-readiness verdict.
