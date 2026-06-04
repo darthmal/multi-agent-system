@@ -4,7 +4,12 @@ Apex Capital Partners ($2.5B AUM) multi-agent AI system for evaluating fintech M
 
 ## Demo
 
-<video src="https://raw.githubusercontent.com/darthmal/multi-agent-system/main/17-28-24.mp4" controls width="100%"></video>
+<p align="center">
+  <a href="https://raw.githubusercontent.com/darthmal/multi-agent-system/main/17-28-24.mp4">
+    <img src="https://img.shields.io/badge/▶%20Watch%20Demo%20Video-Click%20Here-blue?style=for-the-badge" alt="Watch Demo">
+  </a>
+</p>
+<br>
 
 ## Architecture
 
