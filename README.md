@@ -2,6 +2,10 @@
 
 Apex Capital Partners ($2.5B AUM) multi-agent AI system for evaluating fintech M&A targets. Uses DeepSeek LLM-powered specialist agents with fan-out parallelism, architectural evaluation, and a Board-ready dashboard.
 
+## Demo
+
+<video src="https://raw.githubusercontent.com/darthmal/multi-agent-system/main/17-28-24.mp4" controls width="100%"></video>
+
 ## Architecture
 
 ```
